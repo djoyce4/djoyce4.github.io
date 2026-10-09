@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Joyce Garage</title>
+<meta name="description" content="Maintenance schedules and service history for the Joyce family vehicles.">
+<meta name="theme-color" content="#2f5d50" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Garage">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: phone-first single column; fleet agenda up top, each vehicle opens a full-height logbook sheet */
+:root{
+  --bg:#eef0ee; --surface:#ffffff; --sunk:#e3e6e3; --fg:#1b201d; --muted:#5d665f; --line:#d3d8d3;
+  --accent:#2f5d50; --accent-fg:#ffffff;
+  --over:#b4321f; --over-bg:#fbe7e3; --soon:#9a6400; --soon-bg:#fbf0d9; --ok:#2f6b3a; --ok-bg:#e2f1e3; --info:#4b5a8a; --info-bg:#e6e9f5;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1b201d; --sunk:#232a26; --fg:#e7ebe8; --muted:#9aa49d; --line:#2f3732;
+  --accent:#7fb9a7; --accent-fg:#0f1a16;
+  --over:#ff8a73; --over-bg:#3a1d17; --soon:#f2be5c; --soon-bg:#33280f; --ok:#86cf92; --ok-bg:#16301b; --info:#a9b6ec; --info-bg:#1e2440; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1b201d; --sunk:#232a26; --fg:#e7ebe8; --muted:#9aa49d; --line:#2f3732;
+  --accent:#7fb9a7; --accent-fg:#0f1a16;
+  --over:#ff8a73; --over-bg:#3a1d17; --soon:#f2be5c; --soon-bg:#33280f; --ok:#86cf92; --ok-bg:#16301b; --info:#a9b6ec; --info-bg:#1e2440; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:12px 64px}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1{font-size:34px;line-height:1}
+h2{font-size:22px}
+h3{font-size:19px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:8px 14px;border-bottom:2px solid var(--fg)}
+.tally{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.over{background:var(--over-bg);color:var(--over)}
+.pill.soon{background:var(--soon-bg);color:var(--soon)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.info{background:var(--info-bg);color:var(--info)}
+.tabs{display:flex;gap:4px;margin-block:14px;background:var(--sunk);padding:4px;border-radius:10px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);padding:8px 4px;border-radius:7px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+section.view{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:10px}
+.task{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.task.over{border-left-color:var(--over)} .task.soon{border-left-color:var(--soon)} .task.ok{border-left-color:var(--ok)} .task.info{border-left-color:var(--info)} .task.done{opacity:.6}
+.task .t-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.task .t-title{font-weight:600;min-width:0}
+.task .t-veh{font-size:12px;color:var(--muted)}
+.task .t-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.task .t-note{font-size:13px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 13px var(--body);padding:7px 12px;border-radius:7px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent}
+.btn.small{padding:4px 9px;font-size:12px}
+.btn:focus-visible,.tabs button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.vcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.vcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.vcard .odo{font-family:var(--mono);font-size:20px;letter-spacing:.04em;background:var(--sunk);border-radius:6px;padding:2px 8px;align-self:flex-start}
+.vcard .vname{font-family:var(--display);font-size:22px;font-weight:700;line-height:1.05}
+.sheet{position:fixed;inset:0;background:var(--bg);overflow-y:auto;z-index:20;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet .bar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
+.sheet .bar .wrap{padding-block:10px;display:flex;align-items:center;gap:10px}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+ul.strategy{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px}
+form.inline{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;background:var(--sunk);padding:10px;border-radius:8px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);flex:1 1 120px;min-width:0}
+input,select,textarea{font:15px var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 8px;width:100%}
+textarea{min-height:60px}
+.logitem{display:flex;justify-content:space-between;gap:10px;padding-block:8px;border-bottom:1px solid var(--line);font-size:14px}
+.logitem:last-child{border-bottom:0}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:20px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;z-index:40}
+.sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
+.sync .msg{flex:1;min-width:0;color:var(--muted)}
+.sync .msg.err{color:var(--over)}
+.tires{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:13px}
+.tires div{background:var(--sunk);border-radius:6px;padding:4px 8px;display:flex;justify-content:space-between}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.filters button{flex:0 0 auto}
+.filters button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+@media (prefers-reduced-motion:no-preference){.task,.vcard{transition:border-color .2s}}
+
+html{-webkit-text-size-adjust:100%}
+body{margin:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+
+.auth{max-width:420px;margin:12vh auto 0;display:flex;flex-direction:column;gap:14px}
+.auth .block{gap:12px}
+.auth label.f{flex:none}
+.auth p{margin:0;color:var(--muted);font-size:14px}
+.auth .err{color:var(--over);font-size:13px}
+.offline{background:var(--soon-bg);color:var(--soon);font-size:13px;border-radius:8px;padding:6px 10px}
+</style>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Fleet maintenance</div>
+      <h1>Joyce Garage</h1>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="tally" id="tally"></div><button class="btn small ghost" id="acct" hidden>Sign out</button></div>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-due" aria-selected="true" data-tab="due">Due</button>
+    <button role="tab" id="tab-fleet" aria-selected="false" data-tab="fleet">Vehicles</button>
+    <button role="tab" id="tab-log" aria-selected="false" data-tab="log">History</button>
+  </nav>
+  <section class="view" id="view-due"></section>
+  <section class="view" id="view-fleet" hidden></section>
+  <section class="view" id="view-log" hidden></section>
+</div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<script>
+(() => {
+const S = { mcp: null, tesla: {state:'idle', msg:''}, autoSynced: false, vehicles: [], tasks: [], log: [], db: null, ready: false, offline: false, tab: 'due', filter: 'all', open: null, doneFor: null, editOdo: false, addTask: false, editTask: null };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayISO = () => { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const parse = s => { if(!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d||1); };
+const addMonths = (d, n) => { const r = new Date(d); const day = r.getDate(); r.setMonth(r.getMonth()+n); if (r.getDate() < day) r.setDate(0); return r; };
+const daysBetween = (a, b) => Math.round((b - a) / 86400000);
+const fmtDate = d => d ? d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '—';
+const fmtNum = n => Number(n).toLocaleString();
+const unitOf = v => v?.unit === 'hr' ? 'hrs' : v?.unit === 'none' ? '' : 'mi';
+const veh = id => S.vehicles.find(v => v.id === id);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>t.hidden=true,2200); }
+
+function status(t){
+  const v = veh(t.vehicleId) || {};
+  if (t.once && t.done) return {key:'done', label:'Done', score: 9e9};
+  const now = new Date(); now.setHours(0,0,0,0);
+  let dueDate = null, dueOdo = null;
+  if (t.lastDate && t.intMonths) dueDate = addMonths(parse(t.lastDate), t.intMonths);
+  else if (!t.lastDate && t.firstDate) dueDate = parse(t.firstDate);
+  if (t.lastOdo != null && t.intOdo) dueOdo = t.lastOdo + t.intOdo;
+  else if (t.lastOdo == null && t.firstOdo != null) dueOdo = t.firstOdo;
+  const days = dueDate ? daysBetween(now, dueDate) : null;
+  const left = (dueOdo != null && v.odo != null) ? dueOdo - v.odo : null;
+  const soonOdo = v.unit === 'hr' ? 5 : Math.max(500, (t.intOdo||5000) * 0.1);
+  let key = 'ok';
+  if ((days != null && days < 0) || (left != null && left <= 0)) key = 'over';
+  else if ((days != null && days <= 30) || (left != null && left <= soonOdo)) key = 'soon';
+  else if (days == null && left == null) key = 'info';
+  const u = unitOf(v);
+  const parts = [];
+  if (dueDate) parts.push(days < 0 ? `${Math.abs(days)} days overdue` : days === 0 ? 'due today' : `due ${fmtDate(dueDate)}`);
+  if (dueOdo != null) parts.push(left == null ? `at ${fmtNum(dueOdo)} ${u}` : left <= 0 ? `${fmtNum(Math.abs(left))} ${u} past due` : `in ${fmtNum(left)} ${u}`);
+  if (!parts.length) parts.push(v.odo == null && (t.intOdo || t.firstOdo != null) ? `add ${u ? 'odometer' : 'reading'} to schedule` : 'set a baseline');
+  const label = {over:'Overdue', soon:'Due soon', ok:'On track', info:'Needs info'}[key];
+  let score = key==='over' ? -1e6 + (days ?? 0) : key==='soon' ? -1e5 + (days ?? 0) : key==='info' ? 5e5 : (days ?? 4e5);
+  if (key !== 'info' && left != null && days == null) score += left;
+  return {key, label, dueDate, dueOdo, days, left, text: parts.join(' · '), score};
+}
+
+function tally(){
+  const st = S.tasks.map(status);
+  const over = st.filter(s=>s.key==='over').length, soon = st.filter(s=>s.key==='soon').length;
+  $('#tally').innerHTML = S.ready ? `<span class="pill over">${over} overdue</span><span class="pill soon">${soon} due soon</span>` : '';
+}
+
+function taskCard(t, showVeh){
+  const s = status(t), v = veh(t.vehicleId) || {};
+  const iv = [t.intOdo ? `every ${fmtNum(t.intOdo)} ${unitOf(v)}` : '', t.intMonths ? `every ${t.intMonths} mo` : ''].filter(Boolean).join(' or ');
+  const last = t.lastDate ? `last ${fmtDate(parse(t.lastDate))}${t.lastOdo!=null ? ' @ '+fmtNum(t.lastOdo)+' '+unitOf(v) : ''}` : (t.once ? 'one-time' : 'no record yet');
+  const doneForm = S.doneFor === t.id ? `
+    <form class="inline" data-done-form="${t.id}">
+      <label class="f">Date<input type="date" id="dd-${t.id}" name="date" value="${todayISO()}" required></label>
+      ${v.unit !== 'none' ? `<label class="f">${v.unit==='hr'?'Hours':'Odometer'}<input type="number" inputmode="numeric" id="do-${t.id}" name="odo" value="${v.odo ?? ''}" placeholder="${v.unit==='hr'?'hrs':'miles'}"></label>` : ''}
+      <label class="f">Cost $<input type="number" inputmode="decimal" step="0.01" id="dc-${t.id}" name="cost" placeholder="optional"></label>
+      <label class="f" style="flex-basis:100%">Shop / notes<input id="dn-${t.id}" name="notes" placeholder="Who did it, parts used"></label>
+      <button class="btn primary" type="submit">Save</button><button class="btn ghost" type="button" data-cancel>Cancel</button>
+    </form>` : '';
+  return `<article class="task ${s.key}">
+    <div class="t-head"><div class="t-title">${esc(t.title)}${showVeh ? `<div class="t-veh">${esc(v.name||'')}</div>` : ''}</div><span class="pill ${s.key==='done'?'ok':s.key}">${s.label}</span></div>
+    <div class="t-meta"><span class="num">${esc(s.key==='done' ? 'completed '+fmtDate(parse(t.lastDate)) : s.text)}</span>${iv ? `<span>${iv}</span>` : ''}<span>${esc(last)}</span></div>
+    ${t.notes ? `<div class="t-note">${esc(t.notes)}</div>` : ''}
+    ${s.key !== 'done' && S.doneFor !== t.id ? `<div class="row"><button class="btn small primary" data-done="${t.id}">Mark done</button>${!showVeh ? `<button class="btn small ghost" data-edit-task="${t.id}">Edit</button>` : ''}</div>` : ''}
+    ${S.editTask === t.id ? taskForm(t) : ''}
+    ${doneForm}
+  </article>`;
+}
+
+function taskForm(t){
+  const v = veh(S.open) || {}; const u = v.unit==='hr'?'hrs':'mi';
+  t = t || {};
+  return `<form class="inline" data-task-form="${t.id||'new'}">
+    <label class="f" style="flex-basis:100%">Task<input id="tf-title" name="title" required value="${esc(t.title||'')}" placeholder="e.g. Replace wiper blades"></label>
+    ${v.unit!=='none'?`<label class="f">Every (${u})<input id="tf-int" name="intOdo" type="number" inputmode="numeric" value="${t.intOdo??''}"></label>`:''}
+    <label class="f">Every (months)<input id="tf-mo" name="intMonths" type="number" inputmode="numeric" value="${t.intMonths??''}"></label>
+    <label class="f">First due date<input id="tf-first" name="firstDate" type="date" value="${t.firstDate||''}"></label>
+    <label class="f" style="flex-basis:100%">Notes<input id="tf-notes" name="notes" value="${esc(t.notes||'')}"></label>
+    <label class="f row" style="flex-direction:row;align-items:center;gap:6px;flex-basis:100%"><input id="tf-once" name="once" type="checkbox" style="width:auto" ${t.once?'checked':''}> One-time item</label>
+    <button class="btn primary" type="submit">${t.id?'Save':'Add task'}</button>
+    <button class="btn ghost" type="button" data-cancel>Cancel</button>
+    ${t.id?`<button class="btn ghost" type="button" data-del-task="${t.id}" style="color:var(--over)">Delete</button>`:''}
+  </form>`;
+}
+
+// ---------- Tesla sync (via the "tesla" Supabase Edge Function) ----------
+function syncStrip(){
+  if (!S.ready || !sb || !S.vehicles.some(v=>v.tesla)) return '';
+  const t = S.tesla; const last = S.vehicles.filter(v=>v.tesla && v.teslaSyncAt).map(v=>v.teslaSyncAt).sort().pop();
+  const busy = t.state==='syncing' || t.state==='working';
+  const msg = t.state==='syncing' ? 'Reading Model 3 and Cybertruck from Tesla…' : t.msg || (last ? 'Teslas synced '+new Date(last).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' · auto-syncs nightly' : 'Pull current Tesla mileage and tire pressures');
+  let btn = `<button class="btn small primary" data-sync ${busy?'disabled':''}>${t.state==='syncing'?'Syncing…':'Sync from Tesla'}</button>`;
+  if (t.step==='register_domain') btn = `<button class="btn small primary" data-tesla-step="register" ${busy?'disabled':''}>Register domain with Tesla</button>`;
+  if (t.step==='connect_account') btn = `<button class="btn small primary" data-tesla-step="connect" ${busy?'disabled':''}>Connect Tesla account</button>`;
+  return `<div class="sync"><span class="msg ${t.state==='error'?'err':''}">${esc(msg)}</span>${btn}</div>`;
+}
+async function teslaFn(body){
+  const { data, error } = await sb.functions.invoke('tesla', { body });
+  if (error){
+    let msg = 'Tesla sync is unavailable right now.';
+    try { const j = await error.context.json(); if (j && j.error) msg = j.error; } catch {}
+    if (/Failed to send|fetch/i.test(error.message||'') && msg==='Tesla sync is unavailable right now.') msg = navigator.onLine===false ? 'You’re offline.' : 'The Tesla sync function isn’t deployed yet.';
+    throw new Error(msg);
+  }
+  return data;
+}
+async function teslaSetup(){
+  try {
+    const st = await teslaFn({ action:'status' });
+    const copy = {
+      enter_secrets: 'Finish setup: add the Tesla secrets in Supabase → Edge Functions → Secrets.',
+      host_public_key: `Tesla can’t see your public key at https://${st.domain}/.well-known/appspecific/com.tesla.3p.public-key.pem yet.`,
+      register_domain: 'Tesla setup, step 1 of 2: register your domain.',
+      connect_account: 'Tesla setup, step 2 of 2: sign in to Tesla. Best done once from a computer browser.',
+      ready: 'Tesla is connected.'
+    };
+    S.tesla = { state: ['register_domain','connect_account','ready'].includes(st.next_step) ? 'idle' : 'error', step: st.next_step, msg: copy[st.next_step] || 'Check the Tesla setup.' };
+    return st.next_step;
+  } catch(e){ S.tesla = { state:'error', msg: e.message }; return null; }
+}
+async function teslaStep(step){
+  S.tesla = { state:'working', step:S.tesla.step, msg: step==='connect' ? 'Opening Tesla sign-in…' : 'Registering with Tesla…' }; render();
+  try {
+    if (step==='connect'){ const { url } = await teslaFn({ action:'auth_url' }); location.href = url; return; }
+    await teslaFn({ action:'register' }); const next = await teslaSetup(); render(); if (next==='ready') await syncTesla(true);
+  } catch(e){ S.tesla = { state:'error', step:S.tesla.step, msg:e.message }; render(); }
+}
+async function syncTesla(wake){
+  if (!sb || S.tesla.state==='syncing') return;
+  S.tesla = { state:'syncing', msg:'' }; render();
+  try {
+    const res = await teslaFn({ action:'sync', wake: !!wake });
+    const notes = (res.vehicles||[]).map(r => r.asleep ? `${r.name} asleep` : r.error ? `${r.name}: ${r.error}` : `${r.name} ${r.odometer_mi!=null ? fmtNum(r.odometer_mi)+' mi' : 'no odometer'}`);
+    await reload('vehicles').catch(()=>{});
+    S.tesla = { state:'ok', msg: notes.length ? 'Synced: '+notes.join(' · ') : 'No Teslas to sync.' };
+  } catch(e){
+    if (/isn't connected|isn’t connected|Secrets|TESLA_/i.test(e.message)) await teslaSetup();
+    else S.tesla = { state:'error', msg: e.message };
+  }
+  render();
+}
+function renderDue(){
+  const el = $('#view-due');
+  if (!S.ready) { el.innerHTML = loadingState(); return; }
+  if (!S.vehicles.length) { el.innerHTML = `<div class="empty">No vehicles yet. Your fleet and its schedules will appear here once they're loaded.</div>`; return; }
+  const filters = [['all','All'], ...S.vehicles.map(v=>[v.id, v.short||v.name])];
+  let list = S.tasks.filter(t => !(t.once && t.done)).filter(t => S.filter==='all' || t.vehicleId===S.filter);
+  list = list.map(t=>[t,status(t)]).sort((a,b)=>a[1].score-b[1].score);
+  const urgent = list.filter(([,s])=>s.key==='over'||s.key==='soon');
+  const rest = list.filter(([,s])=>s.key!=='over'&&s.key!=='soon');
+  el.innerHTML = syncStrip() + `<div class="filters">${filters.map(([id,n])=>`<button class="btn small" data-filter="${id}" aria-pressed="${S.filter===id}">${esc(n)}</button>`).join('')}</div>
+    <h2>Needs attention</h2>
+    ${urgent.length ? urgent.map(([t])=>taskCard(t,true)).join('') : `<div class="empty">Nothing overdue or due in the next 30 days.</div>`}
+    <h2 style="margin-top:10px">Coming up</h2>
+    ${rest.map(([t])=>taskCard(t,true)).join('')}`;
+}
+
+function renderFleet(){
+  const el = $('#view-fleet');
+  if (!S.ready) { el.innerHTML = loadingState(); return; }
+  if (!S.vehicles.length) { el.innerHTML = `<div class="empty">No vehicles yet.</div>`; return; }
+  el.innerHTML = syncStrip() + `<div class="vgrid">${S.vehicles.map(v=>{
+    const st = S.tasks.filter(t=>t.vehicleId===v.id).map(status);
+    const o = st.filter(s=>s.key==='over').length, so = st.filter(s=>s.key==='soon').length;
+    return `<button class="vcard" data-open="${v.id}">
+      <div class="eyebrow">${esc(v.year||'')} ${esc(v.kind||'')}</div>
+      <div class="vname">${esc(v.name)}</div>
+      ${v.unit!=='none' ? `<div class="odo">${v.odo!=null ? fmtNum(v.odo) : '———'} <span style="font-size:12px">${unitOf(v)}</span></div>` : ''}
+      <div class="tally">${o?`<span class="pill over">${o} overdue</span>`:''}${so?`<span class="pill soon">${so} soon</span>`:''}${!o&&!so?`<span class="pill ok">All current</span>`:''}</div>
+    </button>`; }).join('')}</div>`;
+}
+
+function renderLog(){
+  const el = $('#view-log');
+  if (!S.ready) { el.innerHTML = loadingState(); return; }
+  const items = [...S.log].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const total = items.reduce((s,i)=>s+(Number(i.cost)||0),0);
+  el.innerHTML = `<div class="block"><div class="row" style="justify-content:space-between"><h2>Service history</h2><span class="num muted">$${fmtNum(total.toFixed(0))} logged</span></div>
+    ${items.length ? items.map(i=>{ const v=veh(i.vehicleId)||{}; return `<div class="logitem"><div style="min-width:0"><div><strong>${esc(i.title)}</strong></div><div class="muted" style="font-size:13px">${esc(v.name||'')}${i.shop?' · '+esc(i.shop):''}${i.notes?' · '+esc(i.notes):''}</div></div><div class="num" style="text-align:right;white-space:nowrap;font-size:13px">${fmtDate(parse(i.date))}${i.odo!=null?'<br>'+fmtNum(i.odo)+' '+unitOf(v):''}${i.cost?'<br>$'+fmtNum(i.cost):''}</div></div>`;}).join('') : `<div class="muted">Completed services show up here when you tap Mark done.</div>`}</div>`;
+}
+
+function renderSheet(){
+  const sh = $('#sheet');
+  const v = veh(S.open);
+  if (!v) { sh.hidden = true; document.body.style.overflow=''; return; }
+  sh.hidden = false; document.body.style.overflow='hidden';
+  const tasks = S.tasks.filter(t=>t.vehicleId===v.id).map(t=>[t,status(t)]).sort((a,b)=>a[1].score-b[1].score);
+  const hist = S.log.filter(l=>l.vehicleId===v.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const u = unitOf(v);
+  sh.innerHTML = `<div class="bar"><div class="wrap"><button class="btn ghost" data-close aria-label="Back to fleet">‹ Fleet</button><h2 style="flex:1;min-width:0">${esc(v.name)}</h2></div></div>
+  <div class="wrap" style="display:flex;flex-direction:column;gap:12px">
+    ${v.unit!=='none' ? `<div class="block">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap"><div><div class="eyebrow">${v.unit==='hr'?'Hour meter':'Odometer'}</div><div class="num" style="font-size:26px">${v.odo!=null?fmtNum(v.odo):'Not set'} <span style="font-size:14px">${u}</span></div><div class="muted" style="font-size:12px">${v.odoDate?'as of '+fmtDate(parse(v.odoDate)):'Add a reading so mileage-based items can be scheduled'}</div></div>
+      ${S.editOdo?'':`<div class="row"><button class="btn primary" data-edit-odo>Update reading</button></div>`}</div>
+      ${v.tesla ? syncStrip() : ''}
+      ${v.tires ? `<div class="eyebrow">Tire pressure (psi, cold readings are most accurate)</div><div class="tires num"><div><span>Front L</span><span>${v.tires.fl??'—'}</span></div><div><span>Front R</span><span>${v.tires.fr??'—'}</span></div><div><span>Rear L</span><span>${v.tires.rl??'—'}</span></div><div><span>Rear R</span><span>${v.tires.rr??'—'}</span></div></div>${(()=>{const p=[v.tires.fl,v.tires.fr,v.tires.rl,v.tires.rr].filter(x=>x!=null); return p.length>1 && Math.max(...p)-Math.min(...p)>=4 ? `<div class="pill soon" style="align-self:flex-start">Pressures differ by ${(Math.max(...p)-Math.min(...p)).toFixed(0)} psi. Check for a slow leak.</div>`:'';})()}` : ''}
+      ${S.editOdo?`<form class="inline" data-odo-form><label class="f">${v.unit==='hr'?'Hours':'Miles'}<input id="odo-in" name="odo" type="number" inputmode="numeric" value="${v.odo??''}" required></label><button class="btn primary" type="submit">Save</button><button class="btn ghost" type="button" data-cancel>Cancel</button></form>`:''}
+    </div>`:''}
+    <div class="block"><h3>Strategy</h3><ul class="strategy">${(v.strategy||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>
+    <div class="row" style="justify-content:space-between"><h3>Schedule</h3>${S.addTask?'':`<button class="btn small" data-add-task>+ Add task</button>`}</div>
+    ${S.addTask?taskForm(null):''}
+    ${tasks.map(([t])=>taskCard(t,false)).join('') || '<div class="empty">No scheduled items.</div>'}
+    <div class="block"><h3>Details</h3><dl class="kv">${(v.specs||[]).map(([k,val])=>`<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('')}</dl></div>
+    <div class="block"><h3>History</h3>${hist.length?hist.map(i=>`<div class="logitem"><div style="min-width:0"><strong>${esc(i.title)}</strong><div class="muted" style="font-size:13px">${esc(i.shop||'')}${i.notes?(i.shop?' · ':'')+esc(i.notes):''}</div></div><div class="num" style="text-align:right;font-size:13px;white-space:nowrap">${fmtDate(parse(i.date))}${i.odo!=null?'<br>'+fmtNum(i.odo)+' '+u:''}${i.cost?'<br>$'+fmtNum(i.cost):''}</div></div>`).join(''):'<div class="muted">No records yet.</div>'}</div>
+  </div>`;
+}
+
+function loadingState(){
+  return S.loadError ? `<div class="empty">${esc(S.loadError)}</div>` : `<div class="empty">Loading your vehicles…</div>`;
+}
+
+function render(){
+  tally();
+  ['due','fleet','log'].forEach(k=>{ $('#view-'+k).hidden = S.tab!==k; $('#tab-'+k).setAttribute('aria-selected', S.tab===k); });
+  if (S.tab==='due') renderDue(); else if (S.tab==='fleet') renderFleet(); else renderLog();
+  renderSheet();
+}
+
+async function write(fn, ok){
+  if (!S.db) { toast('Sign in to save changes'); return false; }
+  try { await fn(S.db); if (ok) toast(ok); return true; }
+  catch(e){ toast(e && (e.code==='42501' || /row-level security/i.test(e.message||'')) ? 'This account can’t edit the garage' : (navigator.onLine===false ? 'You’re offline. Try again when connected.' : 'Could not save. Try again.')); return false; }
+}
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.hasAttribute('data-sync')){ syncTesla(true); return; }
+  if (b.dataset.teslaStep){ teslaStep(b.dataset.teslaStep); return; }
+  if (b.dataset.tab){ S.tab=b.dataset.tab; render(); return; }
+  if (b.dataset.filter){ S.filter=b.dataset.filter; render(); return; }
+  if (b.dataset.open){ S.open=b.dataset.open; S.doneFor=null; S.editOdo=false; S.addTask=false; S.editTask=null; render(); $('#sheet').scrollTop=0; return; }
+  if (b.hasAttribute('data-close')){ S.open=null; S.doneFor=null; S.editTask=null; S.addTask=false; S.editOdo=false; render(); return; }
+  if (b.dataset.done){ S.doneFor=b.dataset.done; S.editTask=null; render(); return; }
+  if (b.hasAttribute('data-cancel')){ S.doneFor=null; S.editOdo=false; S.addTask=false; S.editTask=null; render(); return; }
+  if (b.hasAttribute('data-edit-odo')){ S.editOdo=true; render(); $('#odo-in')?.focus(); return; }
+  if (b.hasAttribute('data-add-task')){ S.addTask=true; S.editTask=null; render(); $('#tf-title')?.focus(); return; }
+  if (b.dataset.editTask){ S.editTask=b.dataset.editTask; S.addTask=false; S.doneFor=null; render(); return; }
+  if (b.dataset.delTask){
+    if (b.dataset.armed!=='1'){ b.dataset.armed='1'; b.textContent='Tap again to delete'; return; }
+    const id=b.dataset.delTask; if (await write(db=>db.doc('tasks/'+id).delete(),'Task deleted')){ S.editTask=null; }
+    return;
+  }
+});
+
+document.addEventListener('submit', async e => {
+  const f = e.target; e.preventDefault();
+  const fd = Object.fromEntries(new FormData(f).entries());
+  if (f.dataset.doneForm){
+    const t = S.tasks.find(x=>x.id===f.dataset.doneForm); if (!t) return; const v = veh(t.vehicleId);
+    const odo = fd.odo!==undefined && fd.odo!=='' ? Number(fd.odo) : null;
+    const patch = { lastDate: fd.date, lastOdo: odo };
+    if (t.once) patch.done = true;
+    const ok = await write(async db=>{
+      const { id: _omit, ...rest } = t; await db.doc('tasks/'+t.id).set({ ...rest, ...patch });
+      await db.collection('log').add({ vehicleId:t.vehicleId, taskId:t.id, title:t.title, date:fd.date, odo, cost: fd.cost?Number(fd.cost):null, shop:'', notes: fd.notes||'' });
+      if (odo!=null && v && (v.odo==null || odo>v.odo || (fd.date||'')>=(v.odoDate||''))) await db.doc('vehicles/'+v.id).update({ odo, odoDate: fd.date });
+    }, 'Logged: '+t.title);
+    if (ok) S.doneFor=null; render(); return;
+  }
+  if (f.hasAttribute('data-odo-form')){
+    const v = veh(S.open); const odo = Number(fd.odo);
+    if (await write(db=>db.doc('vehicles/'+v.id).update({ odo, odoDate: todayISO() }), 'Reading saved')) S.editOdo=false; render(); return;
+  }
+  if (f.dataset.taskForm){
+    const id = f.dataset.taskForm==='new' ? null : f.dataset.taskForm;
+    const base = id ? S.tasks.find(x=>x.id===id) : { vehicleId: S.open, lastDate:null, lastOdo:null };
+    const num = x => x===undefined||x==='' ? null : Number(x);
+    const body = { ...base, title: fd.title.trim(), intOdo: num(fd.intOdo), intMonths: num(fd.intMonths), firstDate: fd.firstDate||null, notes: fd.notes||'', once: !!fd.once };
+    delete body.id;
+    const ok = await write(db=> id ? db.doc('tasks/'+id).set(body) : db.collection('tasks').add(body), id?'Task saved':'Task added');
+    if (ok){ S.addTask=false; S.editTask=null; } render(); return;
+  }
+});
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && S.open){ S.open=null; render(); } });
+
+// ---------- Supabase data layer (mirrors the doc/collection API the views use) ----------
+const CFG = window.GARAGE_CONFIG || {};
+const TABLES = ['vehicles','tasks','log'];
+let sb = null;
+
+function rows(t, data){
+  const list = (data||[]).map(r => ({ id: r.id, ...(r.data||{}) }));
+  if (t==='vehicles') list.sort((a,b)=>(a.order??99)-(b.order??99));
+  return list;
+}
+async function reload(t){
+  const { data, error } = await sb.from(t).select('id,data');
+  if (error) throw error;
+  S[t] = rows(t, data);
+  try { localStorage.setItem('garage-cache-'+t, JSON.stringify(S[t])); } catch {}
+}
+async function reloadAll(){
+  try { await Promise.all(TABLES.map(reload)); S.loadError=''; }
+  catch(e){ if (!S.vehicles.length) S.loadError = navigator.onLine===false ? 'You’re offline and nothing is cached yet.' : 'Couldn’t load the garage. Pull down to refresh or try again shortly.'; }
+  S.ready = S.vehicles.length>0 || !S.loadError;
+  render();
+}
+function makeDb(){
+  const ensure = async (t,id,data) => { const { error } = await sb.from(t).upsert({ id, data, updated_at: new Date().toISOString() }); if (error) throw error; };
+  return {
+    doc(path){ const [t,id] = path.split('/'); return {
+      async set(data){ await ensure(t,id,data); await reload(t); },
+      async update(patch){ const { data:row, error } = await sb.from(t).select('data').eq('id',id).single(); if (error) throw error; await ensure(t,id,{ ...(row?.data||{}), ...patch }); await reload(t); },
+      async delete(){ const { error } = await sb.from(t).delete().eq('id',id); if (error) throw error; await reload(t); }
+    }; },
+    collection(t){ return { async add(data){ const id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random().toString(16).slice(2)); await ensure(t,id,data); await reload(t); return { id }; } }; }
+  };
+}
+
+// ---------- Sign-in (email + password; works inside the home-screen app) ----------
+const APP_URL = location.origin + location.pathname;
+function authView(stage, email, err, note){
+  document.getElementById('app').hidden = true;
+  let a = document.getElementById('auth');
+  if (!a){ a = document.createElement('div'); a.id='auth'; a.className='wrap'; document.body.prepend(a); }
+  a.hidden = false;
+  const tabs = (stage==='signin'||stage==='signup') ? `<div class="tabs" role="tablist" style="margin:0"><button type="button" role="tab" aria-selected="${stage==='signin'}" data-auth-tab="signin">Sign in</button><button type="button" role="tab" aria-selected="${stage==='signup'}" data-auth-tab="signup">Create account</button></div>` : '';
+  const body = {
+    signin: `<p>Sign in with your household email and password.</p>
+      <label class="f">Email<input id="auth-email" type="email" autocomplete="username" inputmode="email" required value="${esc(email||'')}"></label>
+      <label class="f">Password<input id="auth-pass" type="password" autocomplete="current-password" required minlength="8"></label>
+      <button class="btn primary" type="submit">Sign in</button>
+      <button class="btn ghost" type="button" id="auth-forgot">Forgot password?</button>`,
+    signup: `<p>First time? Use the email David added to the household list and choose a password (8+ characters). You’ll get one email to confirm it.</p>
+      <label class="f">Email<input id="auth-email" type="email" autocomplete="username" inputmode="email" required value="${esc(email||'')}"></label>
+      <label class="f">Password<input id="auth-pass" type="password" autocomplete="new-password" required minlength="8"></label>
+      <button class="btn primary" type="submit">Create account</button>`,
+    reset: `<p>Choose a new password for <strong>${esc(email||'your account')}</strong>.</p>
+      <label class="f">New password<input id="auth-pass" type="password" autocomplete="new-password" required minlength="8"></label>
+      <button class="btn primary" type="submit">Save password</button>`
+  }[stage];
+  a.innerHTML = `<div class="auth">
+    <div><div class="eyebrow">Fleet maintenance</div><h1>Joyce Garage</h1></div>
+    ${tabs}
+    <form class="block" id="auth-form">${body}
+      ${note ? `<div class="pill ok" style="white-space:normal">${esc(note)}</div>` : ''}
+      ${err ? `<div class="err">${esc(err)}</div>` : ''}
+    </form></div>`;
+  a.querySelectorAll('[data-auth-tab]').forEach(b => b.addEventListener('click', () => authView(b.dataset.authTab, document.getElementById('auth-email')?.value)));
+  document.getElementById('auth-forgot')?.addEventListener('click', async () => {
+    const em = document.getElementById('auth-email').value.trim().toLowerCase();
+    if (!em) return authView('signin', em, 'Enter your email first.');
+    const { error } = await sb.auth.resetPasswordForEmail(em, { redirectTo: APP_URL });
+    authView('signin', em, error ? error.message : '', error ? '' : 'Check your email for a reset link. Open it on this device, then choose a new password.');
+  });
+  const f = document.getElementById('auth-form');
+  f.addEventListener('submit', async e => {
+    e.preventDefault(); e.stopPropagation();
+    const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+    const em = (document.getElementById('auth-email')?.value || email || '').trim().toLowerCase();
+    const pw = document.getElementById('auth-pass').value;
+    if (stage==='signin'){
+      const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
+      if (error) return authView('signin', em, /confirm/i.test(error.message) ? 'Confirm your email first. Check your inbox for the link.' : 'That email and password didn’t match.');
+      start();
+    } else if (stage==='signup'){
+      const { data, error } = await sb.auth.signUp({ email: em, password: pw, options: { emailRedirectTo: APP_URL } });
+      if (error) return authView('signup', em, error.message);
+      if (data.session) return start();
+      authView('signin', em, '', 'Almost done: open the confirmation email, tap the link, then sign in here.');
+    } else {
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if (error) return authView('reset', email, error.message);
+      history.replaceState(null,'',location.pathname); start();
+    }
+  }, true);
+  (document.getElementById('auth-email') || document.getElementById('auth-pass'))?.focus();
+}
+
+let started = false;
+async function start(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) return authView('signin');
+  document.getElementById('auth')?.setAttribute('hidden','');
+  document.getElementById('app').hidden = false;
+  const acct = document.getElementById('acct'); acct.hidden = false; acct.textContent = 'Sign out';
+  acct.onclick = async () => { await sb.auth.signOut(); TABLES.forEach(t=>{ try{localStorage.removeItem('garage-cache-'+t);}catch{} }); location.reload(); };
+  const { data: hh } = await sb.from('household').select('email').limit(1);
+  if (!hh || !hh.length){ S.loadError = `${session.user.email} isn’t on the household list yet. Ask David to add it in Supabase.`; S.ready=false; render(); return; }
+  if (started) return; started = true;
+  S.db = makeDb();
+  // instant paint from cache, then live data
+  TABLES.forEach(t => { try { const c = JSON.parse(localStorage.getItem('garage-cache-'+t)||'null'); if (c) S[t]=c; } catch {} });
+  if (S.vehicles.length){ S.ready = true; render(); }
+  await reloadAll();
+  if (/[?&]tesla=connected/.test(location.search)){ history.replaceState(null,'',location.pathname); toast('Tesla connected'); syncTesla(true); }
+  sb.channel('garage').on('postgres_changes', { event:'*', schema:'public' }, p => { if (TABLES.includes(p.table)) reload(p.table).then(render).catch(()=>{}); }).subscribe();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) reloadAll(); });
+}
+
+async function anonKey(){
+  if (CFG.supabaseAnonKey && !/PASTE/.test(CFG.supabaseAnonKey)) return CFG.supabaseAnonKey;
+  try { const c = localStorage.getItem('garage-anon'); if (c) return c; } catch {}
+  const r = await fetch(CFG.supabaseUrl + '/functions/v1/tesla/config');
+  const j = await r.json(); if (!j.anonKey) throw new Error('no key');
+  try { localStorage.setItem('garage-anon', j.anonKey); } catch {}
+  return j.anonKey;
+}
+(async () => {
+if (!CFG.supabaseUrl){ S.loadError = 'Setup needed: add your Supabase URL to config.js.'; render(); return; }
+let key; try { key = await anonKey(); } catch { S.loadError = 'Couldn’t reach the garage server. Check your connection and reload.'; S.ready=false; render(); return; }
+{
+  sb = window.supabase.createClient(CFG.supabaseUrl, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  sb.auth.onAuthStateChange((ev, session) => { if (ev==='PASSWORD_RECOVERY') authView('reset', session?.user?.email); });
+  if (!/type=recovery/.test(location.hash)) start();
+}
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+})();
+</script>
+</body>
+</html>
